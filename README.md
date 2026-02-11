@@ -1,6 +1,7 @@
 # BeamMP CarHunt
 
 A server-authoritative BeamMP hide-and-seek mode with support for **single or multiple hiders**.
+<img width="2560" height="1440" alt="screenshot_2026-02-11_14-10-49" src="https://github.com/user-attachments/assets/e153bd53-95cf-42d0-bd3a-78c7935cf007" />
 
 ---
 
