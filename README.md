@@ -36,48 +36,12 @@ Round outcomes:
 - Status + scoreboard output
 - Round-end summary with full hider breakdown
 
----
-
-## Repository Layout
-
-- `Server/CarHunt/main.lua`  
-  Main game mode logic (state machine, commands, win conditions, summaries)
-
-- `Server/CarHunt/config.lua`  
-  Default settings
-
-- `Client/scripts/carhunt/modScript.lua`  
-  Client loader (`load("carhunt")`)
-
-- `Client/lua/ge/extensions/carhunt.lua`  
-  Client sync, UI timer, role labels, freeze/reset filters, tag fallback
-
-- `Client/lua/vehicle/extensions/auto/carhuntcontactdetection.lua`  
-  Vehicle contact event helper
-
----
-
 ## Installation
 
-## Server
-
-1. Copy `Server/CarHunt` into your BeamMP server Lua mods path.
-2. Ensure your server entrypoint loads CarHunt:
-
-```lua
-require("CarHunt/main")
-```
-
-## Client
-
-Create your client ZIP from the **contents** of `Client/` with these at ZIP root:
-- `scripts/`
-- `lua/`
-- `shaders/` (if used)
-
-⚠️ Do **not** include an extra parent folder in the ZIP.
-
-Upload this ZIP as your BeamMP client mod package.
+1. Place the `BeamMP-CarHunt.zip` in your Clients folder and create a folder called `CarHunt` and add `main.lua` into your new folder.
+2. Start a round by using `/carhunt start` in the chat box.
+3. After a few seconds the round will start and a person will be selected.
+4. `Hunters` will be frozen for 45 seconds while the `Hiders` get a headstart.
 
 ---
 
@@ -97,7 +61,7 @@ Upload this ZIP as your BeamMP client mod package.
 - `/carhunt set vehicle <vehicleId>`
 - `/carhunt set hiders <count>`
 - `/carhunt set hider <name1,name2,...|clear>`
-- `/carhunt set idleexplode <seconds>`
+- `/carhunt set explode <seconds>`
 - `/carhunt set taggrace <seconds>`
 - `/carhunt set catchdistance <meters>`
 - `/carhunt set hardfreeze toggle`
@@ -115,40 +79,6 @@ Upload this ZIP as your BeamMP client mod package.
 
 ---
 
-## Configuration (`Server/CarHunt/config.lua`)
-
-- `roundDuration` (seconds)
-- `headStart` (seconds)
-- `hiderVehicle`
-- `hiderConfig` (optional)
-- `hiderCount`
-- `forcedHiders` (array of player names)
-- `hiderIdleExplodeSeconds`
-- `tagGraceSeconds`
-- `hideNameTags`
-- `hardFreeze`
-- `catchDistance`
-- `autoNextRound`
-- `autoNextDelay`
-
----
-
-## Round Flow
-
-1. Admin runs `/carhunt start`
-2. Server selects hiders:
-   - forced names first (if valid/online)
-   - random fill to match `hiderCount`
-3. Seekers are frozen for `headStart`
-4. Hunt phase begins
-5. Seekers tag hiders (contact/proximity)
-6. Tagged hider gets grace period (`tagGraceSeconds`)
-7. If tagged hider remains stationary for `hiderIdleExplodeSeconds`, they explode
-8. Seekers win when all hiders are out; otherwise hiders win on timeout
-9. Server posts end summary with `Hiders`, `Alive`, and `Out`
-
----
-
 ## Notes
 
 - Vehicle forcing is best-effort and depends on BeamMP client behavior/load timing.
@@ -156,7 +86,3 @@ Upload this ZIP as your BeamMP client mod package.
 - If behavior seems stale, verify a fresh client ZIP was deployed correctly.
 
 ---
-
-## License
-
-Add the license of your choice before public release (MIT is common for mod projects).

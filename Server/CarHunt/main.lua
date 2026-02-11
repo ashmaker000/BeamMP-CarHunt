@@ -148,7 +148,7 @@ local function startRound(duration)
 
   local hiderList = chooseHiders()
   if not hiderList or #hiderList == 0 then
-    MP.SendChatMessage(-1, "CarHunt: need at least 2 players with vehicles.")
+    MP.SendChatMessage(-1, "CarHunt: You need at least 2 players with vehicles.")
     return
   end
 
@@ -276,7 +276,7 @@ local function markHiderTagged(hiderName, seekerName)
     local s = ensureStats(seekerName)
     s.tags = s.tags + 1
   end
-  MP.SendChatMessage(-1, "CarHunt: " .. tostring(hiderName) .. " tagged! Keep moving or explode in " .. tostring(cfg.hiderIdleExplodeSeconds or 10) .. "s.")
+  MP.SendChatMessage(-1, "CarHunt: " .. tostring(hiderName) .. " Keep moving or explode in " .. tostring(cfg.hiderIdleExplodeSeconds or 10) .. "s.")
 end
 
 function onContact(localPlayerID, data)
@@ -348,7 +348,7 @@ function onSecond()
       state.seekersFrozen = false
       for _, p in pairs(state.players) do p.frozen = false end
       MP.TriggerClientEvent(-1, "carhunt_setFreeze", "0")
-      MP.SendChatMessage(-1, "CarHunt: Hunt started!")
+      MP.SendChatMessage(-1, "CarHunt: The Hunt has started!")
     end
   elseif state.status == "hunt" then
     state.roundRemaining = math.max(0, state.roundRemaining - 1)
@@ -412,7 +412,7 @@ function onPlayerJoin(playerID)
 
   if state.gameRunning and (state.status == "headstart" or state.status == "hunt") then
     state.players[name] = { id = playerID, role = "spectator", frozen = false, connected = true, joinLocked = true }
-    MP.SendChatMessage(playerID, "CarHunt: join-lock active, you'll join next round.")
+    MP.SendChatMessage(playerID, "CarHunt: Join-lock active, you'll join next round.")
   else
     ensurePlayerState(name, playerID)
   end
@@ -445,36 +445,36 @@ local function cmdSet(senderID, key, value)
     local n = parseNumber(value)
     if not n then MP.SendChatMessage(senderID, "Usage: /carhunt set headstart <seconds>") return end
     cfg.headStart = math.max(0, n)
-    MP.SendChatMessage(senderID, "CarHunt: headstart set to " .. cfg.headStart)
+    MP.SendChatMessage(senderID, "CarHunt: Hiders headstart set to " .. cfg.headStart)
   elseif key == "vehicle" then
     if not value or value == "" then MP.SendChatMessage(senderID, "Usage: /carhunt set vehicle <vehicleId>") return end
     cfg.hiderVehicle = value
     cfg.hiderConfig = nil -- vehicle-only mode
-    MP.SendChatMessage(senderID, "CarHunt: default hider vehicle set to " .. cfg.hiderVehicle .. " (applies to future rounds)")
+    MP.SendChatMessage(senderID, "CarHunt: Default hider vehicle set to " .. cfg.hiderVehicle .. " (applies to future rounds)")
   elseif key == "idleexplode" then
     local n = parseNumber(value)
     if not n then MP.SendChatMessage(senderID, "Usage: /carhunt set idleexplode <seconds>") return end
     cfg.hiderIdleExplodeSeconds = math.max(1, n)
-    MP.SendChatMessage(senderID, "CarHunt: idle explode set to " .. cfg.hiderIdleExplodeSeconds .. "s")
+    MP.SendChatMessage(senderID, "CarHunt: Hider's idle explode set to " .. cfg.hiderIdleExplodeSeconds .. "s")
   elseif key == "taggrace" then
     local n = parseNumber(value)
     if not n then MP.SendChatMessage(senderID, "Usage: /carhunt set taggrace <seconds>") return end
     cfg.tagGraceSeconds = math.max(0, n)
-    MP.SendChatMessage(senderID, "CarHunt: tag grace set to " .. cfg.tagGraceSeconds .. "s")
+    MP.SendChatMessage(senderID, "CarHunt: Tag grace set to " .. cfg.tagGraceSeconds .. "s")
   elseif key == "autoround" then
     local v = tostring(value or "")
     cfg.autoNextRound = (v == "on" or v == "true" or v == "1")
-    MP.SendChatMessage(senderID, "CarHunt: autoround " .. (cfg.autoNextRound and "ON" or "OFF"))
+    MP.SendChatMessage(senderID, "CarHunt: Autoround " .. (cfg.autoNextRound and "ON" or "OFF"))
   elseif key == "autodelay" then
     local n = parseNumber(value)
     if not n then MP.SendChatMessage(senderID, "Usage: /carhunt set autodelay <seconds>") return end
     cfg.autoNextDelay = math.max(1, n)
-    MP.SendChatMessage(senderID, "CarHunt: auto delay set to " .. cfg.autoNextDelay .. "s")
+    MP.SendChatMessage(senderID, "CarHunt: Auto delay set to " .. cfg.autoNextDelay .. "s")
   elseif key == "catchdistance" then
     local n = parseNumber(value)
     if not n then MP.SendChatMessage(senderID, "Usage: /carhunt set catchdistance <meters>") return end
     cfg.catchDistance = math.max(1, n)
-    MP.SendChatMessage(senderID, "CarHunt: catch distance set to " .. cfg.catchDistance .. "m")
+    MP.SendChatMessage(senderID, "CarHunt: Catch distance set to " .. cfg.catchDistance .. "m")
   elseif key == "hardfreeze" then
     cfg.hardFreeze = not cfg.hardFreeze
     MP.SendChatMessage(senderID, "CarHunt: hardfreeze " .. (cfg.hardFreeze and "ON" or "OFF"))
@@ -482,7 +482,7 @@ local function cmdSet(senderID, key, value)
     local n = parseNumber(value)
     if not n then MP.SendChatMessage(senderID, "Usage: /carhunt set hiders <count>") return end
     cfg.hiderCount = math.max(1, n)
-    MP.SendChatMessage(senderID, "CarHunt: hider count set to " .. cfg.hiderCount)
+    MP.SendChatMessage(senderID, "CarHunt: Hider count set to " .. cfg.hiderCount)
   elseif key == "hider" then
     if not value or value == "" then
       MP.SendChatMessage(senderID, "Usage: /carhunt set hider <name1,name2,... | clear>")
@@ -490,7 +490,7 @@ local function cmdSet(senderID, key, value)
     end
     if value == "clear" then
       cfg.forcedHiders = {}
-      MP.SendChatMessage(senderID, "CarHunt: forced hiders cleared")
+      MP.SendChatMessage(senderID, "CarHunt: Forced hiders cleared")
       return
     end
 
@@ -500,14 +500,14 @@ local function cmdSet(senderID, key, value)
       if trimmed ~= "" then table.insert(list, trimmed) end
     end
     cfg.forcedHiders = list
-    MP.SendChatMessage(senderID, "CarHunt: forced hiders set to " .. table.concat(cfg.forcedHiders, ", "))
+    MP.SendChatMessage(senderID, "CarHunt: Forced hiders set to " .. table.concat(cfg.forcedHiders, ", "))
   else
-    MP.SendChatMessage(senderID, "CarHunt: unknown set key.")
+    MP.SendChatMessage(senderID, "CarHunt: Unknown set key.")
   end
 end
 
 local function showScoreboard(target)
-  MP.SendChatMessage(target, "CarHunt scoreboard:")
+  MP.SendChatMessage(target, "CarHunt Scoreboard:")
   local count = 0
   for playerName, s in pairs(state.stats) do
     count = count + 1
@@ -569,7 +569,7 @@ function onChatMessage(senderID, senderName, message)
   elseif action == "toggle" then
     cfg.hideNameTags = not cfg.hideNameTags
     state.settings.hideNameTags = cfg.hideNameTags
-    MP.SendChatMessage(-1, "CarHunt: nametags " .. (cfg.hideNameTags and "OFF" or "ON"))
+    MP.SendChatMessage(-1, "CarHunt: Nametags " .. (cfg.hideNameTags and "OFF" or "ON"))
     triggerStateAll()
   elseif action == "scoreboard" then
     showScoreboard(senderID)
