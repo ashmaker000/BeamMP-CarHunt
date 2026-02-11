@@ -9,14 +9,14 @@ A server-authoritative BeamMP hide-and-seek mode with support for **single or mu
 
 In CarHunt:
 - One or more players are chosen as **Hiders**
-- Everyone else becomes **Seekers**
-- Seekers are frozen during a configurable headstart
-- Seekers must tag hiders
+- Everyone else becomes **Hunters**
+- Hunters are frozen during a configurable headstart
+- Hunters must tag hiders
 - Tagged hiders must keep moving or explode after a configurable idle timer
 
 Round outcomes:
 - **Hiders win** if time expires and at least one hider is still alive
-- **Seekers win** when all hiders are eliminated
+- **Hunters win** when all hiders are eliminated
 
 ---
 
@@ -26,7 +26,7 @@ Round outcomes:
 - Multi-hider support (`hiderCount`)
 - Forced hider list support (`forcedHiders`)
 - Forced default hider vehicle
-- Headstart freeze for seekers
+- Headstart freeze for hunters
 - Configurable **hard freeze** toggle
 - Grace period before idle explosion starts (`tagGraceSeconds`)
 - Idle explosion timer (`hiderIdleExplodeSeconds`)
