@@ -39,10 +39,11 @@ Round outcomes:
 
 ## Installation
 
-1. Place the `BeamMP-CarHunt.zip` in your Clients folder and create a folder called `CarHunt` and add `main.lua` into your new folder.
-2. Start a round by using `/carhunt start` in the chat box.
-3. After a few seconds the round will start and a person will be selected.
-4. `Hunters` will be frozen for 45 seconds while the `Hiders` get a headstart.
+1. Unpack `BeamMP-CarHunt.zip` and your see `Client` and `Server` folders
+2. Go into `Client folder` place the `BeamMP-CarHunt.zip` in your Clients folder, then head to your `Server folder` and create a folder called `Tag` and add `main.lua` into your new folder.
+3. Start a round by using `/carhunt start` in the chat box.
+4. After a few seconds the round will start and a person will be selected.
+5. `Hunters` will be frozen for 45 seconds while the `Hiders` get a headstart.
 
 ---
 
