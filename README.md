@@ -13,6 +13,7 @@ In CarHunt:
 - Hunters are frozen during a configurable headstart
 - Hunters must tag hiders
 - Tagged hiders must keep moving or explode after a configurable idle timer
+- Tagged hiders get an on-screen explosion countdown
 
 Round outcomes:
 - **Hiders win** if time expires and at least one hider is still alive
@@ -32,7 +33,7 @@ Round outcomes:
 - Idle explosion timer (`hiderIdleExplodeSeconds`)
 - Contact + proximity tag detection
 - Mid-round join lock (spectator until next round)
-- Per-role reset limits (default: hider=2, seeker=5)
+- Per-role reset limits (default: hider=1, seeker=5)
 - Seeker freecam/drop-to-camera blocking during active rounds
 - Hider reset/home bypass protections
 - Optional hiding of hunter labels for hiders
@@ -93,7 +94,7 @@ Round outcomes:
 - `/carhunt set vehicle <vehicleId>`
 - `/carhunt set hiders <count>`
 - `/carhunt set hider <name1,name2,...|clear>`
-- `/carhunt set explode <seconds>`
+- `/carhunt set idleexplode <seconds>`
 - `/carhunt set taggrace <seconds>`
 - `/carhunt set catchdistance <meters>`
 - `/carhunt set hiderresets <count>`
@@ -120,6 +121,7 @@ Round outcomes:
 
 - Vehicle forcing is best-effort and depends on BeamMP client behavior/load timing.
 - Role labels and nametag behavior are client-side visual systems.
+- Hider explosion visuals are synced via server event + client-side effect application.
 - If behavior seems stale, verify a fresh client ZIP was deployed correctly.
 
 ---
