@@ -25,7 +25,12 @@ local state = {
     autoNextDelay = cfg.autoNextDelay,
     tagGraceSeconds = cfg.tagGraceSeconds,
     hiderIdleExplodeSeconds = cfg.hiderIdleExplodeSeconds,
-    catchDistance = cfg.catchDistance
+    catchDistance = cfg.catchDistance,
+    hiderResetLimit = cfg.hiderResetLimit,
+    seekerResetLimit = cfg.seekerResetLimit,
+    seekerFreecamBlock = cfg.seekerFreecamBlock,
+    hideHunterLabelsForHiders = cfg.hideHunterLabelsForHiders,
+    noLabelsMode = cfg.noLabelsMode
   },
   stats = {},
   winner = nil,
@@ -175,6 +180,11 @@ local function startRound(duration)
   state.settings.tagGraceSeconds = cfg.tagGraceSeconds
   state.settings.hiderIdleExplodeSeconds = cfg.hiderIdleExplodeSeconds
   state.settings.catchDistance = cfg.catchDistance
+  state.settings.hiderResetLimit = cfg.hiderResetLimit
+  state.settings.seekerResetLimit = cfg.seekerResetLimit
+  state.settings.seekerFreecamBlock = cfg.seekerFreecamBlock
+  state.settings.hideHunterLabelsForHiders = cfg.hideHunterLabelsForHiders
+  state.settings.noLabelsMode = cfg.noLabelsMode
   state.forceAttempts = 0
   state.hiderTagged = false
   state.taggedHider = nil
@@ -475,6 +485,28 @@ local function cmdSet(senderID, key, value)
     if not n then MP.SendChatMessage(senderID, "Usage: /carhunt set catchdistance <meters>") return end
     cfg.catchDistance = math.max(1, n)
     MP.SendChatMessage(senderID, "CarHunt: Catch distance set to " .. cfg.catchDistance .. "m")
+  elseif key == "hiderresets" then
+    local n = parseNumber(value)
+    if not n then MP.SendChatMessage(senderID, "Usage: /carhunt set hiderresets <count>") return end
+    cfg.hiderResetLimit = math.max(0, n)
+    MP.SendChatMessage(senderID, "CarHunt: Hider reset limit set to " .. cfg.hiderResetLimit)
+  elseif key == "seekerresets" then
+    local n = parseNumber(value)
+    if not n then MP.SendChatMessage(senderID, "Usage: /carhunt set seekerresets <count>") return end
+    cfg.seekerResetLimit = math.max(0, n)
+    MP.SendChatMessage(senderID, "CarHunt: Seeker reset limit set to " .. cfg.seekerResetLimit)
+  elseif key == "seekerfreecam" then
+    local v = tostring(value or "")
+    cfg.seekerFreecamBlock = (v == "on" or v == "true" or v == "1")
+    MP.SendChatMessage(senderID, "CarHunt: seeker freecam block " .. (cfg.seekerFreecamBlock and "ON" or "OFF"))
+  elseif key == "hidehunterlabels" then
+    local v = tostring(value or "")
+    cfg.hideHunterLabelsForHiders = (v == "on" or v == "true" or v == "1")
+    MP.SendChatMessage(senderID, "CarHunt: hide hunter labels for hiders " .. (cfg.hideHunterLabelsForHiders and "ON" or "OFF"))
+  elseif key == "nolabels" then
+    local v = tostring(value or "")
+    cfg.noLabelsMode = (v == "on" or v == "true" or v == "1")
+    MP.SendChatMessage(senderID, "CarHunt: no-labels mode " .. (cfg.noLabelsMode and "ON" or "OFF"))
   elseif key == "hardfreeze" then
     cfg.hardFreeze = not cfg.hardFreeze
     MP.SendChatMessage(senderID, "CarHunt: hardfreeze " .. (cfg.hardFreeze and "ON" or "OFF"))
@@ -523,6 +555,7 @@ local function showStatus(target)
   MP.SendChatMessage(target, string.format("headstart=%ds round=%ds tagged=%s idle=%ds", tonumber(state.headStartRemaining or 0), tonumber(state.roundRemaining or 0), tostring(state.hiderTagged), tonumber(state.hiderStationarySeconds or 0)))
   MP.SendChatMessage(target, string.format("vehicle=%s hiderCount=%d forcedHiders=%s", tostring(cfg.hiderVehicle), tonumber(cfg.hiderCount or 1), (#(cfg.forcedHiders or {}) > 0 and table.concat(cfg.forcedHiders, ",") or "none")))
   MP.SendChatMessage(target, string.format("idleexplode=%ds taggrace=%ds hideNameTags=%s hardFreeze=%s catchDistance=%sm autoround=%s autodelay=%ds", tonumber(cfg.hiderIdleExplodeSeconds or 10), tonumber(cfg.tagGraceSeconds or 3), tostring(cfg.hideNameTags), tostring(cfg.hardFreeze), tonumber(cfg.catchDistance or 12), tostring(cfg.autoNextRound), tonumber(cfg.autoNextDelay or 10)))
+  MP.SendChatMessage(target, string.format("hiderResets=%d seekerResets=%d seekerFreecamBlock=%s hideHunterLabelsForHiders=%s noLabelsMode=%s", tonumber(cfg.hiderResetLimit or 2), tonumber(cfg.seekerResetLimit or 5), tostring(cfg.seekerFreecamBlock), tostring(cfg.hideHunterLabelsForHiders), tostring(cfg.noLabelsMode)))
 end
 
 local function showHelp(target)
@@ -540,6 +573,11 @@ local function showHelp(target)
   MP.SendChatMessage(target, "/carhunt set idleexplode <seconds>")
   MP.SendChatMessage(target, "/carhunt set taggrace <seconds>")
   MP.SendChatMessage(target, "/carhunt set catchdistance <meters>")
+  MP.SendChatMessage(target, "/carhunt set hiderresets <count>")
+  MP.SendChatMessage(target, "/carhunt set seekerresets <count>")
+  MP.SendChatMessage(target, "/carhunt set seekerfreecam <on|off>")
+  MP.SendChatMessage(target, "/carhunt set hidehunterlabels <on|off>")
+  MP.SendChatMessage(target, "/carhunt set nolabels <on|off>")
   MP.SendChatMessage(target, "/carhunt set hardfreeze toggle")
   MP.SendChatMessage(target, "/carhunt set autoround <on|off>")
   MP.SendChatMessage(target, "/carhunt set autodelay <seconds>")

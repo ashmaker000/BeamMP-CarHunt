@@ -13,7 +13,12 @@ M.defaults = {
   hideNameTags = false,
   hardFreeze = true,
   autoNextRound = false,
-  autoNextDelay = 10
+  autoNextDelay = 10,
+  hiderResetLimit = 1,
+  seekerResetLimit = 5,
+  seekerFreecamBlock = true,
+  hideHunterLabelsForHiders = true,
+  noLabelsMode = false
 }
 
 return M

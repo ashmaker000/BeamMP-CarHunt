@@ -32,7 +32,11 @@ Round outcomes:
 - Idle explosion timer (`hiderIdleExplodeSeconds`)
 - Contact + proximity tag detection
 - Mid-round join lock (spectator until next round)
+- Per-role reset limits (default: hider=2, seeker=5)
+- Seeker freecam/drop-to-camera blocking during active rounds
 - Hider reset/home bypass protections
+- Optional hiding of hunter labels for hiders
+- No-labels mode (hide all role labels + nametags)
 - Runtime admin commands
 - Status + scoreboard output
 - Round-end summary with full hider breakdown
@@ -92,6 +96,11 @@ Round outcomes:
 - `/carhunt set explode <seconds>`
 - `/carhunt set taggrace <seconds>`
 - `/carhunt set catchdistance <meters>`
+- `/carhunt set hiderresets <count>`
+- `/carhunt set seekerresets <count>`
+- `/carhunt set seekerfreecam <on|off>`
+- `/carhunt set hidehunterlabels <on|off>`
+- `/carhunt set nolabels <on|off>`
 - `/carhunt set hardfreeze toggle`
 - `/carhunt set autoround <on|off>`
 - `/carhunt set autodelay <seconds>`

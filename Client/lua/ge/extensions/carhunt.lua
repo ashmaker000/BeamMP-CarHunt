@@ -36,10 +36,19 @@ local freezeActions = {
   "dropPlayerAtCamera", "dropPlayerAtCameraNoReset", "loadHome", "saveHome"
 }
 local softFreezeActions = { "accelerate", "brake", "recover_vehicle", "recover_vehicle_alt", "reset_physics", "dropPlayerAtCamera", "dropPlayerAtCameraNoReset" }
-local hiderResetActions = { "recover_vehicle", "recover_vehicle_alt", "reset_physics", "reset_all_physics", "dropPlayerAtCamera", "dropPlayerAtCameraNoReset", "loadHome", "saveHome" }
+local resetActions = { "recover_vehicle", "recover_vehicle_alt", "reset_physics", "reset_all_physics", "dropPlayerAtCamera", "dropPlayerAtCameraNoReset", "loadHome", "saveHome" }
+local seekerFreecamActions = {
+  "dropPlayerAtCamera", "dropPlayerAtCameraNoReset",
+  "editorToggle", "toggleEditor", "toggleFreeCamera", "freeCamera",
+  "switchCameraNext", "switchCameraPrev"
+}
 local freezeActive = false
 local freezeHardActive = true
-local hiderResetLockActive = false
+local resetLockActive = false
+local seekerFreecamLockActive = false
+local resetUsedThisRound = 0
+local lastResetCountAt = 0
+local lastResetVehId = nil
 
 local function setFreeze(state, hard)
   if not core_input_actionFilter then return end
@@ -58,12 +67,27 @@ local function setNametagVisibility(show)
   end
 end
 
-local function setHiderResetLock(state)
+local function setResetLock(state)
   if not core_input_actionFilter then return end
-  if hiderResetLockActive == state then return end
-  core_input_actionFilter.setGroup("carhunt_hider_noreset", hiderResetActions)
-  core_input_actionFilter.addAction(0, "carhunt_hider_noreset", state)
-  hiderResetLockActive = state
+  if resetLockActive == state then return end
+  core_input_actionFilter.setGroup("carhunt_noreset", resetActions)
+  core_input_actionFilter.addAction(0, "carhunt_noreset", state)
+  resetLockActive = state
+end
+
+local function setSeekerFreecamLock(state)
+  if not core_input_actionFilter then return end
+  if seekerFreecamLockActive == state then return end
+  core_input_actionFilter.setGroup("carhunt_seeker_freecam_lock", seekerFreecamActions)
+  core_input_actionFilter.addAction(0, "carhunt_seeker_freecam_lock", state)
+  seekerFreecamLockActive = state
+end
+
+local function getResetLimit(isHider)
+  if isHider then
+    return tonumber(gameState.settings and gameState.settings.hiderResetLimit) or 2
+  end
+  return tonumber(gameState.settings and gameState.settings.seekerResetLimit) or 5
 end
 
 local hunterTextColor = color(255, 220, 0, 255)
@@ -126,6 +150,7 @@ end
 
 local function drawRoleLabels()
   if (gameState.status ~= "hunt" and gameState.status ~= "headstart") or not MPVehicleGE then return end
+  if gameState.settings and gameState.settings.noLabelsMode then return end
 
   local focusedOwner = getFocusedOwnerName()
   if not focusedOwner then return end
@@ -142,7 +167,7 @@ local function drawRoleLabels()
       if isHider then
         if isHiderName(veh.ownerName) then
           drawRoleTag(veh, "HIDER", hiderTextColor, hiderBackColor)
-        else
+        elseif not (gameState.settings and gameState.settings.hideHunterLabelsForHiders ~= false) then
           drawRoleTag(veh, "HUNTER", hunterTextColor, hunterBackColor)
         end
       elseif isHiderName(veh.ownerName) then
@@ -154,6 +179,9 @@ end
 
 local forcedThisRound = false
 local explodedThisRound = false
+local lastStatusSeen = "idle"
+local huntStartedAt = 0
+local lastExplodeCountdownShown = nil
 local nextMotionReportAt = 0
 local nextProximityCheckAt = 0
 
@@ -168,13 +196,31 @@ local function applyGameState(state)
   gameState = state or gameState
   localName = MPConfig and MPConfig.getNickname and MPConfig.getNickname() or localName
 
+  if gameState.status == "headstart" and lastStatusSeen ~= "headstart" then
+    resetUsedThisRound = 0
+    lastResetCountAt = 0
+    lastResetVehId = nil
+    huntStartedAt = 0
+  elseif gameState.status == "hunt" and lastStatusSeen ~= "hunt" then
+    resetUsedThisRound = 0
+    lastResetCountAt = 0
+    lastResetVehId = nil
+    huntStartedAt = os.clock and os.clock() or 0
+  end
+  lastStatusSeen = gameState.status or lastStatusSeen
+
   local isHider = isHiderName(localName)
   local seekersFrozen = gameState.seekersFrozen and not isHider
   local hardFreeze = not (gameState.settings and gameState.settings.hardFreeze == false)
   setFreeze(seekersFrozen, hardFreeze)
 
   local roundActive = gameState.status == "headstart" or gameState.status == "hunt"
-  setHiderResetLock(isHider and roundActive)
+  local resetLimit = getResetLimit(isHider)
+  local resetLock = roundActive and (resetUsedThisRound >= resetLimit)
+  setResetLock(resetLock)
+
+  local seekerFreecamBlock = (gameState.settings and gameState.settings.seekerFreecamBlock) ~= false
+  setSeekerFreecamLock(roundActive and (not isHider) and seekerFreecamBlock)
 
   if isHider and gameState.status == "headstart" and not forcedThisRound and gameState.hiderVehicle then
     forceLocalVehicle(gameState.hiderVehicle, gameState.hiderConfig)
@@ -183,9 +229,13 @@ local function applyGameState(state)
     forcedThisRound = false
     explodedThisRound = false
     overlayDebugShown = false
+    resetUsedThisRound = 0
+    lastExplodeCountdownShown = nil
   end
 
-  local hideNameTags = gameState.settings and gameState.settings.hideNameTags
+  local noLabels = gameState.settings and gameState.settings.noLabelsMode
+  local hideNameTags = (gameState.settings and gameState.settings.hideNameTags) or noLabels
+  if noLabels then hideNameTags = true end
   setNametagVisibility(not hideNameTags)
 
   local timerText = nil
@@ -198,6 +248,19 @@ local function applyGameState(state)
   end
   if timerText then
     guihooks.message({ txt = timerText }, 1.5, "info")
+  end
+
+  -- Tagged hider countdown UI
+  if gameState.status == "hunt" and gameState.hiderTagged and tostring(gameState.taggedHider or "") == tostring(localName or "") then
+    local limit = tonumber(gameState.settings and gameState.settings.hiderIdleExplodeSeconds) or 10
+    local used = tonumber(gameState.hiderStationarySeconds or 0) or 0
+    local remain = math.max(0, limit - used)
+    if lastExplodeCountdownShown == nil or remain ~= lastExplodeCountdownShown then
+      lastExplodeCountdownShown = remain
+      guihooks.message({ txt = string.format("CarHunt: MOVE! Explosion in %ds", remain) }, 1.2, "carhunt.countdown")
+    end
+  else
+    lastExplodeCountdownShown = nil
   end
 end
 
@@ -263,9 +326,16 @@ end
 
 local function onResetState()
   forcedThisRound = false
+  resetUsedThisRound = 0
+  lastResetCountAt = 0
+  lastResetVehId = nil
+  huntStartedAt = 0
   setFreeze(false, false)
-  setHiderResetLock(false)
-  local hideNameTags = gameState.settings and gameState.settings.hideNameTags
+  setResetLock(false)
+  setSeekerFreecamLock(false)
+  local noLabels = gameState.settings and gameState.settings.noLabelsMode
+  local hideNameTags = (gameState.settings and gameState.settings.hideNameTags) or noLabels
+  if noLabels then hideNameTags = true end
   setNametagVisibility(not hideNameTags)
 end
 
@@ -276,24 +346,37 @@ local function onSetFreeze(flag)
 end
 
 local function onExplodeHider(targetName)
-  local nick = (MPConfig and MPConfig.getNickname and MPConfig.getNickname()) or localName
   local target = tostring(targetName or "")
-  local isMe = (target ~= "" and string.lower(target) == string.lower(tostring(nick or ""))) or (gameState.taggedHider and tostring(gameState.taggedHider) == tostring(nick))
-  if not isMe then return end
+  if target == "" then return end
 
-  local vehID = be:getPlayerVehicleID(0)
-  local veh = vehID and getObjectByID(vehID) or nil
-  if not veh then return end
+  local applied = false
 
-  pcall(function()
-    veh:queueLuaCommand([[if fire and fire.explodeVehicle then pcall(fire.explodeVehicle) end
-      if fire and fire.igniteVehicle then pcall(fire.igniteVehicle) end
-      if beamstate and beamstate.breakAllBreakgroups then pcall(beamstate.breakAllBreakgroups) end
-      if electrics and electrics.values then electrics.values.ignitionLevel = 0 end]])
-  end)
+  -- Apply to any matching MP vehicle on this client (improves cross-client sync visuals).
+  if MPVehicleGE and MPVehicleGE.getVehicles then
+    for _, v in pairs(MPVehicleGE.getVehicles() or {}) do
+      if tostring(v.ownerName or "") == target then
+        local obj = v.gameVehicleID and getObjectByID(v.gameVehicleID) or nil
+        if obj then
+          pcall(function()
+            obj:queueLuaCommand([[if fire and fire.explodeVehicle then pcall(fire.explodeVehicle) end
+              if fire and fire.igniteVehicle then pcall(fire.igniteVehicle) end
+              if beamstate and beamstate.breakAllBreakgroups then pcall(beamstate.breakAllBreakgroups) end
+              if electrics and electrics.values then electrics.values.ignitionLevel = 0 end]])
+          end)
+          applied = true
+        end
+      end
+    end
+  end
 
-  explodedThisRound = true
-  guihooks.message({ txt = "CarHunt: BOOM (hider immobilized)" }, 4, "carhunt.boom")
+  local nick = (MPConfig and MPConfig.getNickname and MPConfig.getNickname()) or localName
+  local isMe = string.lower(target) == string.lower(tostring(nick or ""))
+  if isMe then
+    explodedThisRound = true
+    guihooks.message({ txt = "CarHunt: BOOM (hider immobilized)" }, 4, "carhunt.boom")
+  elseif applied then
+    guihooks.message({ txt = "CarHunt: hider exploded", ttl = 1.5 }, 1.5, "carhunt.boom.remote")
+  end
 end
 
 local function requestState()
@@ -428,6 +511,50 @@ local function onVehicleSwitched(oldID, newID)
   end
 end
 
+local function onVehicleResetted(vehID)
+  local roundActive = gameState.status == "headstart" or gameState.status == "hunt"
+  if not roundActive then return end
+  if gameState.status ~= "hunt" then return end
+
+  -- Count only resets for the local player's currently controlled vehicle.
+  local myVehID = be:getPlayerVehicleID(0)
+  if not myVehID or tonumber(vehID) ~= tonumber(myVehID) then return end
+
+  if MPVehicleGE and MPVehicleGE.isOwn then
+    local okOwn, isOwn = pcall(function() return MPVehicleGE.isOwn(myVehID) end)
+    if okOwn and isOwn == false then return end
+  end
+
+  -- Debounce duplicate reset callbacks fired by Beam/MP during one recover action.
+  local now = os.clock and os.clock() or 0
+  if (now - (huntStartedAt or 0)) < 1.5 then
+    return
+  end
+  if lastResetVehId == myVehID and (now - (lastResetCountAt or 0)) < 0.2 then
+    return
+  end
+  lastResetVehId = myVehID
+  lastResetCountAt = now
+
+  local nick = (MPConfig and MPConfig.getNickname and MPConfig.getNickname()) or localName
+  local isHider = isHiderName(nick)
+  local limit = getResetLimit(isHider)
+  if limit < 0 then return end
+
+  resetUsedThisRound = (resetUsedThisRound or 0) + 1
+  local remaining = math.max(0, limit - resetUsedThisRound)
+  guihooks.message({ txt = string.format("CarHunt: resets used %d/%d (remaining %d)", resetUsedThisRound, limit, remaining) }, 3, "carhunt.reset")
+
+  if resetUsedThisRound >= limit then
+    setResetLock(true)
+    if isHider then
+      guihooks.message({ txt = "CarHunt: Hider reset limit reached.", ttl = 3 }, 3, "carhunt.resetlock")
+    else
+      guihooks.message({ txt = "CarHunt: Hunter reset limit reached.", ttl = 3 }, 3, "carhunt.resetlock")
+    end
+  end
+end
+
 local function onInit()
   AddEventHandler("carhunt_updateGameState", handleUpdateState)
   AddEventHandler("carhunt_forceHiderVehicle", handleForceHiderVehicle)
@@ -451,4 +578,5 @@ M.onPreRender = onPreRender
 M.onUpdate = onUpdate
 M.onVehicleSpawned = onVehicleSpawned
 M.onVehicleSwitched = onVehicleSwitched
+M.onVehicleResetted = onVehicleResetted
 return M
